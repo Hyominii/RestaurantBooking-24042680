@@ -150,3 +150,18 @@ def test_현재날짜가_일요일이_아닌경우_예약가능(mocker: MockerFi
 
     # assert
     assert booking_scheduler.has_schedule(schedule)
+
+
+def test_create_customer():
+    name = "test"
+    phone_no = "010-1234-5678"
+    email = "test@test.com"
+    customer = Customer(name, phone_no, email)
+
+    assert customer is not None
+    assert customer.get_email() == email
+
+def test_mail_send(mocker: MockerFixture, booking_scheduler, customer_with_mail):
+    schedule = Schedule(ON_THE_HOUR, UNDER_CAPACITY, customer_with_mail)
+    booking_scheduler.add_schedule(schedule)
+    assert customer_with_mail.get_email.call_count == 2
