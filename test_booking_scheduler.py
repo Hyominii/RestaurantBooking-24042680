@@ -60,8 +60,25 @@ def test_시간대별_인원제한이_있다_같은_시간대가_다르면_Capac
     assert booking_scheduler.has_schedule(new_schedule)
 
 
-def test_예약완료시_SMS는_무조건_발송():
-    pass
+def test_예약완료시_SMS는_무조건_발송(booking_scheduler):
+    # arrange
+    class SmsSenderTest:
+        def __init__(self):
+            self.sent = False
+
+        def send(self, schedule: Schedule):
+            self.sent = True
+
+    schedule = Schedule(ON_THE_HOUR, CAPACITY_PER_HOUR, CUSTOMER)
+    sms_sender = SmsSenderTest()
+    booking_scheduler.set_sms_sender(sms_sender)
+
+    # act
+    booking_scheduler.add_schedule(schedule)
+
+    # assert
+    assert sms_sender.sent == True
+
 
 
 def test_이메일이_없는_경우에는_이메일_미발송():
