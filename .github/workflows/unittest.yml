@@ -1,0 +1,46 @@
+name: Run Tests with Discord Alert
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests and capture result
+        id: test
+        continue-on-error: true  # 실패해도 다음 step으로 넘어감
+        run: |
+          pytest --cov=your_package_name tests/ > result.log
+          tail -n 20 result.log
+
+      - name: Notify Discord if test failed
+        if: steps.test.outcome == 'failure'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          content="❌ **테스트 실패!**\n\nPR 또는 커밋: ${{ github.event.pull_request.html_url || github.sha }}\n작성자: ${{ github.actor }}"
+          content="$content\n\n🔥 최근 로그:\n\`\`\`\n$(tail -n 10 result.log)\n\`\`\`"
+
+          JSON_PAYLOAD=$(printf '{"content": "%s"}' "$content")
+
+          curl -X POST "$DISCORD_WEBHOOK" \
+               -H "Content-Type: application/json" \
+               -d "$JSON_PAYLOAD"
