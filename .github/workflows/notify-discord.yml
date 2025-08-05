@@ -8,29 +8,25 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Discord notification
+      - name: Send PR info to Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           if [[ "${{ github.event.action }}" == "opened" ]]; then
-            content="📢 **Pull Request가 생성되었습니다!**
-
-제목: ${{ github.event.pull_request.title }}
-작성자: ${{ github.event.pull_request.user.login }}
-링크: ${{ github.event.pull_request.html_url }}"
+            content="📢 Pull Request가 생성되었습니다!"
           elif [[ "${{ github.event.action }}" == "closed" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
-            content="✅ **Pull Request가 머지되었습니다!**
-
-제목: ${{ github.event.pull_request.title }}
-작성자: ${{ github.event.pull_request.user.login }}
-링크: ${{ github.event.pull_request.html_url }}"
+            content="✅ Pull Request가 머지되었습니다!"
           else
-            echo "No notification needed for this event."
+            echo "PR closed but not merged. No notification sent."
             exit 0
           fi
 
-          # 실제 줄바꿈 문자 포함된 content를 jq로 안전하게 감싸서 전송
-          jq -n --arg content "$content" '{content: $content}' > payload.json
+          jq -n \
+            --arg title "${{ github.event.pull_request.title }}" \
+            --arg user "${{ github.event.pull_request.user.login }}" \
+            --arg url "${{ github.event.pull_request.html_url }}" \
+            --arg content "$content" \
+            '{content: ($content + "\n\n제목: " + $title + "\n작성자: " + $user + "\n링크: " + $url)}' > payload.json
 
           curl -X POST "$DISCORD_WEBHOOK" \
             -H "Content-Type: application/json" \
