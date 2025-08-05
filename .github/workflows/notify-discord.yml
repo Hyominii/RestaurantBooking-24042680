@@ -13,14 +13,25 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           if [[ "${{ github.event.action }}" == "opened" ]]; then
-            content="**📢 Pull Request가 생성되었습니다!**\n\n제목: ${{ github.event.pull_request.title }}\n작성자: ${{ github.event.pull_request.user.login }}\n링크: ${{ github.event.pull_request.html_url }}"
+            content="📢 **Pull Request가 생성되었습니다!**
+
+제목: ${{ github.event.pull_request.title }}
+작성자: ${{ github.event.pull_request.user.login }}
+링크: ${{ github.event.pull_request.html_url }}"
           elif [[ "${{ github.event.action }}" == "closed" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
-            content="**✅ Pull Request가 머지되었습니다!**\n\n제목: ${{ github.event.pull_request.title }}\n작성자: ${{ github.event.pull_request.user.login }}\n링크: ${{ github.event.pull_request.html_url }}"
+            content="✅ **Pull Request가 머지되었습니다!**
+
+제목: ${{ github.event.pull_request.title }}
+작성자: ${{ github.event.pull_request.user.login }}
+링크: ${{ github.event.pull_request.html_url }}"
           else
             echo "No notification needed for this event."
             exit 0
           fi
 
+          # 실제 줄바꿈 문자 포함된 content를 jq로 안전하게 감싸서 전송
+          jq -n --arg content "$content" '{content: $content}' > payload.json
+
           curl -X POST "$DISCORD_WEBHOOK" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n --arg content "$content" '{content: $content}')"
+            -d @payload.json
